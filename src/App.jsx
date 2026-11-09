@@ -407,7 +407,7 @@ export default function App() {
         </div>
 
         <h1>
-          거짓말 탐지기
+          0x4ty
           <br />
           <em>알림 도우미</em>
         </h1>
