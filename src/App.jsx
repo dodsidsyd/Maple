@@ -238,6 +238,8 @@ export default function App() {
 
       // 감지 키워드
       const keywords = [
+        "거짓말",
+        "비올레타",
         "거짓말탐지기",
         "거짓말탐지기가",
         "거짓말탐지기발동",
