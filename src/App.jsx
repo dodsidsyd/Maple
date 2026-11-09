@@ -25,7 +25,7 @@ export default function App() {
   // 알림 설정
   const [soundType, setSoundType] = useState("voice");
   const [volume, setVolume] = useState(70);
-  const [repeatCount, setRepeatCount] = useState(1);
+  const [repeatCount, setRepeatCount] = useState(3);
   const [customSound, setCustomSound] = useState(null);
 
   const [intervalMs, setIntervalMs] = useState(500);
@@ -203,41 +203,47 @@ export default function App() {
     try {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
 
       const width = video.videoWidth;
       const height = video.videoHeight;
 
-      // OCR 분석용 이미지 크기 조정
-      const scale = Math.min(1, 1000 / width);
+      // [개선 1] 전체 화면이 아닌, 거짓말 탐지기가 주로 등장하는 상단/중앙 영역만 잘라내기 예시
+      // 예: 화면 중앙 상단 부근 (전체 크기의 비율 또는 픽셀로 지정)
+      const sx = width * 0.2;
+      const sy = height * 0.1;
+      const sWidth = width * 0.6;
+      const sHeight = height * 0.4;
 
-      canvas.width = Math.floor(width * scale);
-      canvas.height = Math.floor(height * scale);
+      canvas.width = 1000; // 해상도를 낮춰서 속도 극대화 (예: 고정 1000px 너비)
+      canvas.height = (sHeight / sWidth) * 1000;
 
-      // 전체 화면 분석
+      // 동영상에서 특정 영역만 잘라서 캔버스에 그리기
       ctx.drawImage(
         video,
-        0,
-        0,
-        canvas.width,
-        canvas.height
+        sx, sy, sWidth, sHeight,  // 자를 원본 영역
+        0, 0, canvas.width, canvas.height // 캔버스에 표시할 크기
       );
 
+      // [개선 2] 이미지 대비를 주거나 흑백으로 처리하면 OCR 속도가 빨라집니다 (선택 사항)
+      // const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      // 여기서 픽셀 조작(이진화)을 거치면 인식률이 더 좋아집니다.
+
       const t0 = performance.now();
-      const { data } = await workerRef.current.recognize(canvas);
+      
+      // [개선 3] PSM 옵션을 주어 단일 블록 위주로 빠르게 스캔
+      // tesseract.js에서 recognize 옵션으로 PSM 지정 가능
+      const { data } = await workerRef.current.recognize(canvas, {
+        tessedit_pageseg_mode: '6', // 6: 단일 텍스트 블록으로 가정
+      });
+
       console.log("OCR 소요시간(ms):", Math.round(performance.now() - t0));
 
       const originalText = data.text || "";
-
       const text = normalizeText(originalText);
 
-      setLatestText(
-        originalText.trim() ||
-          "인식된 텍스트 없음"
-      );
+      setLatestText(originalText.trim() || "인식된 텍스트 없음");
 
-      // 감지 키워드
       const keywords = [
         "거짓말",
         "비올레타",
@@ -258,44 +264,27 @@ export default function App() {
 
       if (matched) {
         const now = Date.now();
-
-        // 10초 중복 알림 방지
-        if (
-          now - lastAlertRef.current > 10000
-        ) {
+        if (now - lastAlertRef.current > 10000) {
           lastAlertRef.current = now;
-
           alertSound();
 
-          const time =
-            new Date().toLocaleTimeString(
-              "ko-KR"
-            );
-
+          const time = new Date().toLocaleTimeString("ko-KR");
           setLogs((prev) => [
             {
               time,
-              message:
-                KEYWORD + " 문구 감지",
+              message: KEYWORD + " 문구 감지",
             },
             ...prev,
           ].slice(0, 5));
 
-          setStatus(
-            "거짓말 탐지기 문구 감지! 알림을 재생했어요."
-          );
+          setStatus("거짓말 탐지기 문구 감지! 알림을 재생했어요.");
         }
       } else {
-        setStatus(
-          "화면 분석 중 · 문구 미감지"
-        );
+        setStatus("화면 분석 중 · 문구 미감지");
       }
     } catch (error) {
       console.error("화면 분석 오류:", error);
-
-      setStatus(
-        "화면 분석 중 오류가 발생했어요."
-      );
+      setStatus("화면 분석 중 오류가 발생했어요.");
     } finally {
       busyRef.current = false;
     }
@@ -410,7 +399,7 @@ export default function App() {
         </div>
 
         <h1>
-          거짓말탐지기 v3
+          거짓말탐지기 v4
           <br />
           <em>알림 도우미</em>
         </h1>
