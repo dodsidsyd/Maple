@@ -23,12 +23,12 @@ export default function App() {
   const [sound, setSound] = useState(true);
 
   // 알림 설정
-  const [soundType, setSoundType] = useState("bell");
+  const [soundType, setSoundType] = useState("voice");
   const [volume, setVolume] = useState(70);
   const [repeatCount, setRepeatCount] = useState(1);
   const [customSound, setCustomSound] = useState(null);
 
-  const [intervalMs, setIntervalMs] = useState(1800);
+  const [intervalMs, setIntervalMs] = useState(1000);
 
   const [logs, setLogs] = useState([]);
 
@@ -204,7 +204,7 @@ export default function App() {
       const video = videoRef.current;
       const canvas = canvasRef.current;
 
-      const ctx = canvas.getContext("2d");
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
 
       const width = video.videoWidth;
       const height = video.videoHeight;
