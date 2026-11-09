@@ -25,10 +25,10 @@ export default function App() {
   // 알림 설정
   const [soundType, setSoundType] = useState("voice");
   const [volume, setVolume] = useState(70);
-  const [repeatCount, setRepeatCount] = useState(3);
+  const [repeatCount, setRepeatCount] = useState(2);
   const [customSound, setCustomSound] = useState(null);
 
-  const [intervalMs, setIntervalMs] = useState(500);
+  const [intervalMs, setIntervalMs] = useState(800);
 
   const [logs, setLogs] = useState([]);
 
@@ -187,7 +187,6 @@ export default function App() {
       .replace(/[.,!?·:]/g, "");
   };
 
-  // 게임 화면 분석
   const scan = async () => {
     if (
       busyRef.current ||
@@ -208,33 +207,40 @@ export default function App() {
       const width = video.videoWidth;
       const height = video.videoHeight;
 
-      // [개선 1] 전체 화면이 아닌, 거짓말 탐지기가 주로 등장하는 상단/중앙 영역만 잘라내기 예시
-      // 예: 화면 중앙 상단 부근 (전체 크기의 비율 또는 픽셀로 지정)
-      const sx = width * 0.2;
-      const sy = height * 0.1;
-      const sWidth = width * 0.6;
-      const sHeight = height * 0.4;
+      // 해상도와 무관하게 항상 전체 화면을 1000px 기준 비율로 맞춤
+      canvas.width = 1200;
+      canvas.height = (height / width) * 1200;
 
-      canvas.width = 1000; // 해상도를 낮춰서 속도 극대화 (예: 고정 1000px 너비)
-      canvas.height = (sHeight / sWidth) * 1000;
-
-      // 동영상에서 특정 영역만 잘라서 캔버스에 그리기
+      // 원본 전체 화면을 캔버스에 그림 (해상도 영향 최소화)
       ctx.drawImage(
         video,
-        sx, sy, sWidth, sHeight,  // 자를 원본 영역
-        0, 0, canvas.width, canvas.height // 캔버스에 표시할 크기
+        0, 0, width, height,
+        0, 0, canvas.width, canvas.height
       );
 
-      // [개선 2] 이미지 대비를 주거나 흑백으로 처리하면 OCR 속도가 빨라집니다 (선택 사항)
-      // const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      // 여기서 픽셀 조작(이진화)을 거치면 인식률이 더 좋아집니다.
+      // --- [추가] 흑백 전환 및 대비(Contrast) 강화 전처리 ---
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const dataPixels = imgData.data;
+      
+      for (let i = 0; i < dataPixels.length; i += 4) {
+        // 1. 그레이스케일(흑백)로 변환
+        const avg = dataPixels[i] * 0.3 + dataPixels[i + 1] * 0.59 + dataPixels[i + 2] * 0.11;
+        
+        // 2. 이진화(Threshold) 또는 대비를 강하게 주어 글자(밝은 색)와 배경 분리
+        // 글자가 뚜렷하게 보이도록 임계값 조절 (예: 150 기준)
+        const threshold = 150;
+        const v = avg > threshold ? 255 : 0; // 배경은 하얗게, 글자는 까맣게(또는 반대)
+        
+        dataPixels[i]     = avg; // R
+        dataPixels[i + 1] = avg; // G
+        dataPixels[i + 2] = avg; // B
+      }
+      ctx.putImageData(imgData, 0, 0);
 
       const t0 = performance.now();
       
-      // [개선 3] PSM 옵션을 주어 단일 블록 위주로 빠르게 스캔
-      // tesseract.js에서 recognize 옵션으로 PSM 지정 가능
       const { data } = await workerRef.current.recognize(canvas, {
-        tessedit_pageseg_mode: '6', // 6: 단일 텍스트 블록으로 가정
+        tessedit_pageseg_mode: '6', 
       });
 
       console.log("OCR 소요시간(ms):", Math.round(performance.now() - t0));
@@ -636,6 +642,7 @@ export default function App() {
               }
             >
               <option value={1}>1회</option>
+              <option value={2}>2회</option>
               <option value={3}>3회</option>
               <option value={5}>5회</option>
             </select>
