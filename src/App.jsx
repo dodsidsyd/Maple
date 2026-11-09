@@ -23,7 +23,7 @@ export default function App() {
   const [sound, setSound] = useState(true);
 
   // 알림 설정
-  const [soundType, setSoundType] = useState("voice");
+  const [soundType, setSoundType] = useState("bell");
   const [volume, setVolume] = useState(70);
   const [repeatCount, setRepeatCount] = useState(1);
   const [customSound, setCustomSound] = useState(null);
@@ -243,8 +243,6 @@ export default function App() {
         "거짓말탐지기발동",
         "거짓말 탐지기가",
         "입력을 위해 먼저",
-        "5",
-        "5번"
       ];
 
       const matched = keywords.some((keyword) =>
@@ -407,7 +405,7 @@ export default function App() {
         </div>
 
         <h1>
-          0x4ty
+          test
           <br />
           <em>알림 도우미</em>
         </h1>
