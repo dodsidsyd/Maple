@@ -28,7 +28,7 @@ export default function App() {
   const [repeatCount, setRepeatCount] = useState(1);
   const [customSound, setCustomSound] = useState(null);
 
-  const [intervalMs, setIntervalMs] = useState(1000);
+  const [intervalMs, setIntervalMs] = useState(500);
 
   const [logs, setLogs] = useState([]);
 
@@ -44,7 +44,7 @@ export default function App() {
       setStatus("한국어 OCR 엔진 준비 중…");
 
       try {
-        const worker = await createWorker("kor+eng");
+        const worker = await createWorker("kor");
 
         if (cancelled) {
           await worker.terminate();
@@ -210,7 +210,7 @@ export default function App() {
       const height = video.videoHeight;
 
       // OCR 분석용 이미지 크기 조정
-      const scale = Math.min(1, 1600 / width);
+      const scale = Math.min(1, 1000 / width);
 
       canvas.width = Math.floor(width * scale);
       canvas.height = Math.floor(height * scale);
@@ -224,8 +224,9 @@ export default function App() {
         canvas.height
       );
 
-      const { data } =
-        await workerRef.current.recognize(canvas);
+      const t0 = performance.now();
+      const { data } = await workerRef.current.recognize(canvas);
+      console.log("OCR 소요시간(ms):", Math.round(performance.now() - t0));
 
       const originalText = data.text || "";
 
@@ -409,7 +410,7 @@ export default function App() {
         </div>
 
         <h1>
-          거짓말탐지기 v2
+          거짓말탐지기 v3
           <br />
           <em>알림 도우미</em>
         </h1>
@@ -555,6 +556,8 @@ export default function App() {
               }
               disabled={sharing}
             >
+              <option value={500}>0.5초</option>
+              <option value={800}>0.8초</option>
               <option value={1000}>1초</option>
               <option value={1800}>1.8초</option>
               <option value={3000}>3초</option>
